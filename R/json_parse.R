@@ -93,7 +93,9 @@ atx_json_parse <- function(txt) {
     st$i <- st$i + 1L
     .atx_skip_ws(st)
     val <- .atx_parse_value(st)
-    res[[length(res) + 1L]] <- val
+    # Use single-bracket list assignment so a JSON null (R NULL) is STORED as a
+    # list element rather than deleting the slot (which `[[<- NULL` would do).
+    res[length(res) + 1L] <- list(val)
     keys <- c(keys, key)
     .atx_skip_ws(st)
     c <- .atx_peek(st)
