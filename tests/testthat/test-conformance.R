@@ -2,22 +2,42 @@
 # These vectors are the authoritative oracle generated from the real attestix
 # 0.4.0 crypto. A failing vector means this port is wrong, not the vector.
 
-load_vectors <- function() {
+vectors_path <- function() {
   path <- system.file("testdata", "vectors.json", package = "attestix")
   if (!nzchar(path)) {
     # When running from source (devtools::test) before install.
     path <- testthat::test_path("..", "..", "inst", "testdata", "vectors.json")
   }
-  txt <- paste(readLines(path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
-  jsonlite::fromJSON(txt, simplifyVector = FALSE, simplifyDataFrame = FALSE)
+  path
 }
 
-vectors_doc <- load_vectors()
+vectors_text <- function() {
+  paste(readLines(vectors_path(), warn = FALSE, encoding = "UTF-8"),
+        collapse = "\n")
+}
+
+# jsonlite parse for harness navigation (ids, expected, tokens, dids).
+vectors_doc <- jsonlite::fromJSON(vectors_text(), simplifyVector = FALSE,
+                                  simplifyDataFrame = FALSE)
+
+# Exact parse with the package's own parser, which preserves big integers and
+# whole-vs-non-whole number lexemes. Canonicalisation MUST use these inputs,
+# not the jsonlite tree (jsonlite reads 9007199254740993 as a lossy double).
+vectors_exact <- atx_json_parse(vectors_text())
+
 server_pubkey_hex <- vectors_doc$issuer_pubkey_raw_hex
 server_pubkey <- atx_hex_to_raw(server_pubkey_hex)
 
 by_kind <- function(kind) {
   Filter(function(v) v$kind == kind, vectors_doc$vectors)
+}
+
+# Look up a vector's exactly-parsed node by id.
+exact_by_id <- function(id) {
+  for (v in vectors_exact$vectors) {
+    if (identical(v$id, id)) return(v)
+  }
+  NULL
 }
 
 test_that("vectors.json loaded and well-formed", {
@@ -31,7 +51,8 @@ test_that("vectors.json loaded and well-formed", {
 
 test_that("canonicalize vectors match canonical_bytes_hex byte-for-byte", {
   for (v in by_kind("canonicalize")) {
-    got <- atx_canonicalize(v$input)
+    exact <- exact_by_id(v$id)
+    got <- atx_canonicalize(exact$input)
     got_hex <- atx_raw_to_hex(got)
     expect_equal(got_hex, v$canonical_bytes_hex,
                  info = paste("vector", v$id, "canonical bytes mismatch"))
@@ -71,7 +92,8 @@ ref_now <- as.POSIXct("2026-01-01T00:00:00", format = "%Y-%m-%dT%H:%M:%S",
 
 test_that("verify_credential vectors produce the expected structured result", {
   for (v in by_kind("verify_credential")) {
-    res <- atx_verify_credential(v$input, public_key = server_pubkey,
+    exact <- exact_by_id(v$id)
+    res <- atx_verify_credential(exact$input, public_key = server_pubkey,
                                  now = ref_now)
     exp <- v$expected
     expect_equal(res$signature_valid, exp$signature_valid,
@@ -88,7 +110,9 @@ test_that("verify_credential vectors produce the expected structured result", {
 test_that("verify_credential canonical signing bytes match the vector", {
   for (v in by_kind("verify_credential")) {
     if (is.null(v$canonical_bytes_hex)) next
-    payload <- v$input[setdiff(names(v$input), c("proof", "credentialStatus"))]
+    exact <- exact_by_id(v$id)
+    payload <- exact$input[setdiff(names(exact$input),
+                                   c("proof", "credentialStatus"))]
     got_hex <- atx_raw_to_hex(atx_canonicalize(payload))
     expect_equal(got_hex, v$canonical_bytes_hex,
                  info = paste(v$id, "signing canonical bytes"))
@@ -97,7 +121,7 @@ test_that("verify_credential canonical signing bytes match the vector", {
 
 test_that("verify_credential derives the issuer key from the did:key", {
   # Without an explicit public_key, the verifier must resolve issuer.id.
-  valid <- Filter(function(v) v$id == "vc-valid-001", vectors_doc$vectors)[[1]]
+  valid <- exact_by_id("vc-valid-001")
   res <- atx_verify_credential(valid$input, public_key = NULL, now = ref_now)
   expect_true(res$signature_valid)
   expect_true(res$verify)
@@ -107,7 +131,8 @@ test_that("verify_credential derives the issuer key from the did:key", {
 
 test_that("verify_delegation_chain vectors produce the expected result", {
   for (v in by_kind("verify_delegation_chain")) {
-    res <- atx_verify_delegation_chain(v$input, public_key = server_pubkey,
+    exact <- exact_by_id(v$id)
+    res <- atx_verify_delegation_chain(exact$input, public_key = server_pubkey,
                                        now = ref_now)
     exp <- v$expected
     expect_equal(res$parent_signature_valid, exp$parent_signature_valid,

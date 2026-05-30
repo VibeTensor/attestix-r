@@ -66,6 +66,19 @@ atx_parse_json <- function(txt) {
   if (is.character(x) && length(x) == 1L) {
     return(.atx_json_string(x))
   }
+  # Bare atomic numbers (e.g. from a jsonlite-parsed tree). NOTE: doubles lose
+  # precision above 2^53, so integers larger than that MUST be supplied via the
+  # string/raw API (which routes through atx_json_parse and preserves them as
+  # exact atx_number lexemes). This branch is a convenience for ordinary values.
+  if (is.numeric(x) && length(x) == 1L && !is.na(x)) {
+    if (is.integer(x)) return(format(x, scientific = FALSE))
+    return(.atx_number(format(x, scientific = FALSE, trim = TRUE, digits = 17)))
+  }
+  # Length-1 logical NA or other atomics fall through; multi-length atomic
+  # vectors are treated as JSON arrays (jsonlite may keep arrays atomic).
+  if (is.atomic(x) && !is.list(x) && length(x) != 1L) {
+    return(.atx_array(as.list(x)))
+  }
   if (is.list(x)) {
     nm <- names(x)
     if (length(x) == 0L) {
