@@ -1,0 +1,63 @@
+name: R-CMD-check
+
+# Build + run the cross-language conformance vectors. This CI run is the
+# build/test proof when no local R toolchain is available.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  R-CMD-check:
+    runs-on: ubuntu-latest
+    name: R-CMD-check (${{ matrix.config.r }})
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { r: 'release' }
+          - { r: 'oldrel-1' }
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      _R_CHECK_CRAN_INCOMING_REMOTE_: false
+    steps:
+      # actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      # libsodium headers for the 'sodium' R package.
+      - name: Install system dependencies (libsodium)
+        run: sudo apt-get update && sudo apt-get install -y libsodium-dev
+
+      # r-lib/actions/setup-r@v2 (a51a8012b0aab7c32ef9d19bf54da93f3254335e)
+      - uses: r-lib/actions/setup-r@a51a8012b0aab7c32ef9d19bf54da93f3254335e
+        with:
+          r-version: ${{ matrix.config.r }}
+          use-public-rspm: true
+
+      # r-lib/actions/setup-r-dependencies@v2
+      - uses: r-lib/actions/setup-r-dependencies@a51a8012b0aab7c32ef9d19bf54da93f3254335e
+        with:
+          extra-packages: |
+            any::rcmdcheck
+            any::roxygen2
+          needs: check
+
+      # Regenerate man/ and NAMESPACE from the roxygen source of truth so the
+      # checked-in docs are always exactly what roxygen produces before check.
+      - name: Regenerate documentation
+        run: roxygen2::roxygenise()
+        shell: Rscript {0}
+
+      # r-lib/actions/check-r-package@v2
+      - uses: r-lib/actions/check-r-package@a51a8012b0aab7c32ef9d19bf54da93f3254335e
+        with:
+          args: 'c("--no-manual", "--as-cran")'
+          error-on: '"warning"'
+          upload-snapshots: true
