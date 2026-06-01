@@ -4,6 +4,7 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^cran-comments\.md$
+^SUBMITTING\.md$
 ^CONTRIBUTING\.md$
 ^\.Rbuildignore$
 ^\.gitignore$

@@ -1,0 +1,69 @@
+name: as-cran
+
+# Full CRAN-grade check: R CMD check --as-cran WITH the PDF manual (LaTeX)
+# and HTML manual (tidy), erroring on any note or warning so the package
+# stays CRAN-submission-ready. Complements the lighter test.yml matrix.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  as-cran:
+    runs-on: ubuntu-latest
+    name: R CMD check --as-cran (release, full manual)
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      # Remote incoming-feasibility hits a network service; the only remaining
+      # note is "New submission", which is expected and not an error here.
+      _R_CHECK_CRAN_INCOMING_REMOTE_: false
+    steps:
+      # actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      # libsodium headers for the 'sodium' R package + tidy for HTML manual.
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libsodium-dev tidy
+
+      # r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r@a51a8012b0aab7c32ef9d19bf54da93f3254335e
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      # TeX Live for the PDF manual check (tinytex is enough for Rd2pdf).
+      - uses: r-lib/actions/setup-tinytex@a51a8012b0aab7c32ef9d19bf54da93f3254335e
+
+      - name: Install extra TeX packages for the manual
+        run: tlmgr install inconsolata times helvetic courier
+
+      # r-lib/actions/setup-r-dependencies@v2
+      - uses: r-lib/actions/setup-r-dependencies@a51a8012b0aab7c32ef9d19bf54da93f3254335e
+        with:
+          extra-packages: |
+            any::rcmdcheck
+            any::roxygen2
+          needs: check
+
+      # Regenerate man/ and NAMESPACE from the roxygen source of truth so the
+      # checked-in docs are exactly what roxygen produces before check.
+      - name: Regenerate documentation
+        run: roxygen2::roxygenise()
+        shell: Rscript {0}
+
+      # Full --as-cran WITH the manual. error-on note keeps it CRAN-clean;
+      # the only allowed note ("New submission") is suppressed by
+      # _R_CHECK_CRAN_INCOMING_REMOTE_=false above.
+      # r-lib/actions/check-r-package@v2
+      - uses: r-lib/actions/check-r-package@a51a8012b0aab7c32ef9d19bf54da93f3254335e
+        with:
+          args: 'c("--as-cran")'
+          error-on: '"note"'
+          upload-snapshots: true
