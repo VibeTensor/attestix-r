@@ -4,7 +4,7 @@ Title: Offline Verifier for Attestix Ed25519 Credentials and UCAN Delegations
 Version: 0.4.0
 Authors@R: c(
     person("Pavan Kumar", "Dubasi", role = c("aut", "cre"),
-           email = "pkd@vibetensor.com"),
+           email = "info@vibetensor.com"),
     person("VibeTensor", role = c("cph", "fnd")))
 Description: An offline verifier for verifiable credentials and delegation
     chains issued by the Attestix Python core. Verifies Ed25519 (RFC 8032)
