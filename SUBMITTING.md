@@ -63,7 +63,7 @@ R CMD build .
 
 ## Notes
 
-- Do not skip the win-builder / R-hub step — CRAN expects a Windows check and
+- Do not skip the win-builder / R-hub step. CRAN expects a Windows check and
   will reject submissions that fail on Windows.
 - The package is a **verifier only**: it verifies Ed25519 W3C VCs and UCAN
   delegations; it does not issue credentials. Keep this framing in any
