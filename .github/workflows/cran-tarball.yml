@@ -1,0 +1,47 @@
+name: cran-tarball
+
+# Builds the CRAN source tarball (attestix_<version>.tar.gz) and uploads it as a
+# workflow artifact, so the maintainer can download it and submit to CRAN
+# (win-builder + cran.r-project.org/submit.html) without a local R install.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-tarball:
+    runs-on: ubuntu-latest
+    name: R CMD build (source tarball)
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libsodium-dev
+
+      - uses: r-lib/actions/setup-r@a51a8012b0aab7c32ef9d19bf54da93f3254335e
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@a51a8012b0aab7c32ef9d19bf54da93f3254335e
+        with:
+          extra-packages: any::roxygen2
+          needs: check
+
+      - name: Regenerate documentation
+        run: roxygen2::roxygenise()
+        shell: Rscript {0}
+
+      - name: Build source tarball
+        run: R CMD build .
+
+      - name: Upload tarball artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cran-tarball
+          path: attestix_*.tar.gz
+          if-no-files-found: error
