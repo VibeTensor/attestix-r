@@ -1,7 +1,7 @@
 Package: attestix
 Type: Package
 Title: Offline Verifier for Attestix Ed25519 Credentials and UCAN Delegations
-Version: 0.4.0
+Version: 0.4.1
 Authors@R: c(
     person("Pavan Kumar", "Dubasi", role = c("aut", "cre"),
            email = "info@vibetensor.com"),

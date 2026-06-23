@@ -12,9 +12,9 @@
 #'
 #' Three independent checks are ANDed:
 #' \itemize{
-#'   \item \code{signature_valid} — Ed25519 verification of the canonical bytes.
-#'   \item \code{not_expired} — \code{now < expirationDate} (tz-aware ISO-8601).
-#'   \item \code{not_revoked} — \code{credentialStatus$revoked} is falsy.
+#'   \item \code{signature_valid} - Ed25519 verification of the canonical bytes.
+#'   \item \code{not_expired} - \code{now < expirationDate} (tz-aware ISO-8601).
+#'   \item \code{not_revoked} - \code{credentialStatus$revoked} is falsy.
 #' }
 #'
 #' @param vc The credential as a JSON string, raw UTF-8 bytes, or a value tree

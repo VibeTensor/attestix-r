@@ -4,7 +4,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Offline verifier for the verifiable credentials and UCAN delegation chains
-issued by the [Attestix](https://github.com/VibeTensor/attestix) Python core —
+issued by the [Attestix](https://github.com/VibeTensor/attestix) Python core -
 **no Python runtime needed**. Built for compliance, research and biostatistics
 users who live in R and need to check AI-agent compliance credentials.
 

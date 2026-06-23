@@ -40,14 +40,14 @@ Confirm win-builder reports the same clean result (0 errors / 0 warnings /
 
 ```sh
 R CMD build .
-# produces attestix_0.4.0.tar.gz
+# produces attestix_0.4.1.tar.gz
 ```
 
 ## 3. Submit
 
 1. Go to <https://cran.r-project.org/submit.html>.
 2. Maintainer name: Pavan Kumar Dubasi. Email: `info@vibetensor.com`.
-3. Upload `attestix_0.4.0.tar.gz`.
+3. Upload `attestix_0.4.1.tar.gz`.
 4. Paste the contents of `cran-comments.md` into the comments box.
 5. Submit.
 
@@ -63,7 +63,7 @@ R CMD build .
 
 ## Notes
 
-- Do not skip the win-builder / R-hub step — CRAN expects a Windows check and
+- Do not skip the win-builder / R-hub step - CRAN expects a Windows check and
   will reject submissions that fail on Windows.
 - The package is a **verifier only**: it verifies Ed25519 W3C VCs and UCAN
   delegations; it does not issue credentials. Keep this framing in any
