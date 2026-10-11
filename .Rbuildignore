@@ -8,3 +8,4 @@
 ^CONTRIBUTING\.md$
 ^\.Rbuildignore$
 ^\.gitignore$
+^\.coderabbit\.yaml$
