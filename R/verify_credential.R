@@ -65,7 +65,8 @@ atx_verify_credential <- function(vc, public_key = NULL, now = Sys.time()) {
   }
 
   # Expiry.
-  not_expired <- .atx_check_not_expired(tree[["expirationDate"]], now)
+  not_expired <- if (!("expirationDate" %in% names(tree))) TRUE else
+    .atx_check_not_expired(tree[["expirationDate"]], now)
 
   # Revocation (locally checkable only).
   not_revoked <- .atx_check_not_revoked(tree[["credentialStatus"]])
@@ -91,9 +92,13 @@ atx_verify_credential <- function(vc, public_key = NULL, now = Sys.time()) {
 }
 
 .atx_resolve_pubkey <- function(public_key, tree) {
-  if (is.raw(public_key) && length(public_key) == 32L) return(public_key)
-  if (is.character(public_key) && length(public_key) == 1L) {
-    return(atx_hex_to_raw(public_key))
+  if (!is.null(public_key)) {
+    if (is.raw(public_key) && length(public_key) == 32L) return(public_key)
+    if (is.character(public_key) && length(public_key) == 1L) {
+      key <- tryCatch(atx_hex_to_raw(public_key), error = function(e) NULL)
+      if (is.raw(key) && length(key) == 32L) return(key)
+    }
+    return(NULL)
   }
   # Derive from issuer.id (a did:key) or verificationMethod.
   issuer <- tree[["issuer"]]
@@ -103,22 +108,20 @@ atx_verify_credential <- function(vc, public_key = NULL, now = Sys.time()) {
   } else if (is.character(issuer)) {
     did <- issuer
   }
-  if (is.null(did)) {
-    proof <- tree[["proof"]]
-    if (is.list(proof) && !is.null(proof[["verificationMethod"]])) {
-      vm <- proof[["verificationMethod"]]
-      did <- sub("#.*$", "", vm)
-    }
+  proof <- tree[["proof"]]
+  if (is.list(proof) && "verificationMethod" %in% names(proof)) {
+    vm <- proof[["verificationMethod"]]
+    if (!is.character(vm) || length(vm) != 1L || !identical(sub("#.*$", "", vm), did)) return(NULL)
   }
-  if (is.character(did) && grepl("^did:key:z", did)) {
+  if (is.character(did) && length(did) == 1L && grepl("^did:key:z", did)) {
     return(tryCatch(atx_decode_did_key(did), error = function(e) NULL))
   }
   NULL
 }
 
 .atx_check_not_expired <- function(exp_str, now) {
-  if (is.null(exp_str) || !is.character(exp_str) || !nzchar(exp_str)) {
-    return(TRUE) # no expiry -> never expires
+  if (is.null(exp_str) || !is.character(exp_str) || length(exp_str) != 1L || !nzchar(exp_str)) {
+    return(FALSE) # present expiry must be a valid timestamp
   }
   exp_t <- .atx_parse_iso8601(exp_str)
   now_t <- if (inherits(now, "POSIXct")) now else .atx_parse_iso8601(as.character(now))

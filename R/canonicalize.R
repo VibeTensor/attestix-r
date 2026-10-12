@@ -96,6 +96,7 @@ atx_parse_json <- function(txt) {
 .atx_object <- function(x) {
   keys <- names(x)
   nkeys <- vapply(keys, .atx_nfc, character(1), USE.NAMES = FALSE)
+  if (anyDuplicated(nkeys)) stop("atx_canonicalize: duplicate normalized object key")
   ord <- .atx_codepoint_order(nkeys)
   parts <- character(length(x))
   for (i in seq_along(ord)) {
@@ -154,8 +155,10 @@ atx_parse_json <- function(txt) {
     return(sub("^\\+", "", lex))
   }
   val <- as.numeric(lex)
+  if (!is.finite(val)) stop("atx_canonicalize: non-finite float")
+  if (val == 0 && grepl("^-", lex)) stop("atx_canonicalize: signed zero unsupported")
   if (is.finite(val) && val == round(val) && abs(val) < 1e15) {
-    return(format(as.integer(round(val)), scientific = FALSE))
+    return(format(round(val), scientific = FALSE, trim = TRUE, digits = 17))
   }
   if (is.finite(val) && val == round(val)) {
     return(format(val, scientific = FALSE, trim = TRUE))
