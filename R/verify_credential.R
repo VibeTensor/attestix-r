@@ -21,7 +21,8 @@
 #'   from \code{\link{atx_json_parse}}.
 #' @param public_key The issuer Ed25519 public key. Accepts a raw 32-byte
 #'   vector, a 64-char hex string, or \code{NULL} to derive it from the
-#'   credential's \code{issuer.id} / \code{verificationMethod} did:key.
+#'   credential's \code{issuer.id} (or string issuer) did:key. In automatic resolution, a present
+#'   verification method must refer to that issuer.
 #' @param now The reference time for the expiry check, as a
 #'   \code{POSIXct} or ISO-8601 string. Defaults to \code{Sys.time()}.
 #' @return A list with logical fields \code{signature_valid},

@@ -9,3 +9,4 @@
 ^\.Rbuildignore$
 ^\.gitignore$
 ^\.coderabbit\.yaml$
+^CHANGELOG\.md$

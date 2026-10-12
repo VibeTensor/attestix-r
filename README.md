@@ -1,101 +1,96 @@
-# attestix (R)
+# Attestix verifier for R
 
-[![R-CMD-check](https://github.com/VibeTensor/attestix-r/actions/workflows/test.yml/badge.svg)](https://github.com/VibeTensor/attestix-r/actions/workflows/test.yml)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+Offline verification of signed credentials and parent/child delegation pairs
+issued by the [Attestix Python core](https://github.com/VibeTensor/attestix).
+No Python runtime is required. This package checks technical evidence;
+a valid signature does not establish the truth or legal conformity of its claims.
 
-Offline verifier for the verifiable credentials and UCAN delegation chains
-issued by the [Attestix](https://github.com/VibeTensor/attestix) Python core -
-**no Python runtime needed**. Built for compliance, research and biostatistics
-users who live in R and need to check AI-agent compliance credentials.
+## Install from source
 
-It verifies:
-
-- **W3C Verifiable Credentials** signed with Ed25519 (RFC 8032).
-- **`did:key`** Ed25519 identifiers (multibase base58btc + `0xed01` multicodec).
-- **UCAN delegation chains** (EdDSA JWTs) including capability attenuation.
-
-Every check is validated against the **shared cross-language conformance
-vectors** (`inst/testdata/vectors.json`), the same oracle used by the Go, Rust,
-Java and JS ports. The vectors are generated from the real attestix 0.4.0
-crypto.
-
-## The canonical form is JCS-*style*, not strict RFC 8785
-
-This is the single most error-prone part of any port, so it is worth stating up
-front. The Attestix canonical form is a **practical subset of JCS** that
-**diverges from strict RFC 8785** in two load-bearing ways:
-
-1. **NFC Unicode normalization** is applied to every string value and every
-   object key. RFC 8785 explicitly does *not* normalize; Attestix does.
-2. Whole-number floats collapse to integers (`1.0` -> `1`); non-whole floats use
-   Python's `repr`. Signed payloads should avoid non-trivial floats (the vectors
-   use only integers and `1.5`, on which all ports agree).
-
-Otherwise: keys sorted by Unicode code point, `","`/`":"` separators with no
-whitespace, raw UTF-8 output (no `\uXXXX` escapes), large integers preserved
-exactly. The full spec is in the parent repo at
-`spec/verify/v1/README.md` and the bundle wire format is published at
-<https://attestix.io/spec/bundle/v1>.
-
-## Install
+Requires R >= 4.0.0 and the `sodium`, `openssl` and `stringi` dependencies.
+The `sodium` package may require system libsodium development headers.
 
 ```r
-# system dependency: libsodium (e.g. `apt-get install libsodium-dev`)
-
-# from GitHub:
 # install.packages("remotes")
-remotes::install_github("VibeTensor/attestix-r")
-
-# once on CRAN (submission pending):
-# install.packages("attestix")
+remotes::install_github(
+  "VibeTensor/attestix-r@38b530c6a62d429a9762d6c92cb01f4e937a7dd5"
+)
 ```
 
-## Verify a credential (10 lines)
+The revision pins the source described here. Review changes before choosing a
+new revision; source installation is separate from any package-registry release.
+
+## Verify a credential
 
 ```r
 library(attestix)
-
-# vc is the credential JSON (string, raw bytes, or a parsed value tree).
 vc <- readChar("credential.json", file.info("credential.json")$size)
-
-res <- atx_verify_credential(vc)            # issuer key auto-resolved from did:key
-res$signature_valid                          # Ed25519 over JCS-canonical bytes
-res$not_expired                              # now < expirationDate (tz-aware)
-res$not_revoked                              # credentialStatus.revoked is falsy
-res$verify                                   # TRUE only if all three hold
-
-# canonical bytes, did:key decode, and delegation chains are first-class too:
-atx_decode_did_key("did:key:z6Mko5TBPGKHkCxSgmf3aC6p6SGj2auwCfRmBydXJFEwL4ev")
+result <- atx_verify_credential(vc)
+result$signature_valid
+result$not_expired
+result$not_revoked
+result$structure_valid
+result$verify
 ```
 
-## Public API
+Use original JSON text or raw UTF-8 bytes when integer precision matters.
+Converting JSON to ordinary R doubles first can lose integer precision.
 
-| Function | Purpose |
-|---|---|
-| `atx_verify_credential(vc, public_key, now)` | Verify a W3C VC (signature + expiry + revocation). |
-| `atx_canonicalize(obj)` | JCS-style canonical UTF-8 bytes (the oracle). |
-| `atx_decode_did_key(did)` | Decode an Ed25519 `did:key` to the raw 32-byte key. |
-| `atx_verify_delegation_chain(chain, public_key)` | Verify a UCAN chain + attenuation. |
-| `atx_ed25519_verify(message, signature, public_key)` | Raw Ed25519 verify. |
+Automatic key resolution uses the signed issuer's Ed25519 `did:key` and rejects
+a conflicting `proof.verificationMethod`. An explicit `public_key` overrides
+that resolution: the caller must obtain the key from a trusted source and bind
+it to the expected issuer. Key resolution alone is not an issuer allowlist.
 
-## Conformance
+`expirationDate` is checked when present; a malformed present value fails.
+`not_revoked` reads the supplied `credentialStatus.revoked` flag. The status is
+excluded from the signed payload, and this offline verifier does not fetch an
+external registry or establish current revocation status. Applications must
+supply a separate trusted, fresh revocation policy and enforce their own expiry
+requirements. Removing unsigned status cannot establish that a credential is live.
+
+## Delegation and public API
+
+| Function | Scope |
+| --- | --- |
+| `atx_verify_credential(vc, public_key, now)` | Credential signature, supplied expiry/status and structural checks. |
+| `atx_verify_ucan_token(token, public_key, now, revoked_jti)` | EdDSA token checks with caller-supplied key, time and revoked IDs. |
+| `atx_verify_delegation_chain(chain, public_key, now, revoked_jti)` | Parent/child signatures, capability subset and pair cycle checks. |
+| `atx_canonicalize(obj)` | Attestix canonical bytes, rejecting normalized-key ambiguity and unsupported numbers. |
+| `atx_decode_did_key(did)` | Raw Ed25519 key from `did:key`. |
+| `atx_ed25519_verify(message, signature, public_key)` | Raw signature verification. |
+
+Pass the signed parent and child tokens for delegation decisions. The chain
+helper evaluates one pair; list input selects the first and last token, rather
+than validating every intermediate hop. Caller-provided `parent_att`/`child_att`
+fields override token capability sets and must not be accepted from an untrusted
+request. Applications must validate each hop and apply their resource/action,
+identity and replay policies separately.
+
+## Canonicalization and interoperability
+
+This is the custom Attestix v1 format, not strict RFC 8785/JCS or a general W3C
+proof-suite implementation. It NFC-normalizes strings and object keys, sorts
+keys and collapses supported whole-number floats to integers. Normalized-key
+collisions and unsupported numeric values fail. JSON text preserves integer
+lexemes; arbitrary floating-point interoperability is not guaranteed.
+
+The [verification specification](https://github.com/VibeTensor/attestix/tree/main/spec/verify/v1)
+and `inst/testdata/vectors.json` define the tested profile. Passing shared and
+negative vectors establishes those cases, not universal standards conformance,
+legal compliance, a SOC 2 report or ISO certification.
+
+## Development
 
 ```r
-# from the package source:
-devtools::test()        # runs tests/testthat against inst/testdata/vectors.json
+# From the source checkout, with package dependencies installed:
+roxygen2::roxygenise()
+testthat::test_local()
 ```
 
-The CI workflow runs `R CMD check --as-cran` plus the vector suite on
-`ubuntu-latest` across two R versions. The vectors are vendored verbatim from
-the parent repo's `spec/verify/v1/vectors.json`.
-
-## Relationship to the parent project
-
-This is one of several language ports of the Attestix offline verifier. The
-authoritative implementation and the issuing side live in the Python core at
-[VibeTensor/attestix](https://github.com/VibeTensor/attestix). Project home:
-[attestix.io](https://attestix.io).
+CI checks release and old-release R, package examples, generated help and shared
+vectors. Additional workflows check manual PDF/HTML and source-package contents.
+These checks are engineering evidence, not a promise about every environment.
 
 ## License
 
-[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0).
+[Apache-2.0](LICENSE). Project home: [attestix.io](https://attestix.io).
