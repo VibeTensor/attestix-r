@@ -5,6 +5,7 @@
 - Correct the source-install revision to the reviewed 0.4.2 release.
 - Distinguish GitHub 0.4.2 availability from CRAN 0.4.1 as checked on 2026-10-30,
   and update the maintainer submission instructions to use the 0.4.2 tarball.
+- Update the TeX package manager before installing manual fonts in CI.
 
 ## [0.4.2] - 2026-10-12
 
