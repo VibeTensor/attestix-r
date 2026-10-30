@@ -13,12 +13,19 @@ The `sodium` package may require system libsodium development headers.
 ```r
 # install.packages("remotes")
 remotes::install_github(
-  "VibeTensor/attestix-r@38b530c6a62d429a9762d6c92cb01f4e937a7dd5"
+  "VibeTensor/attestix-r@86da19e626042697f73ad6d57e031c8b3c22fcdc"
 )
 ```
 
-The revision pins the source described here. Review changes before choosing a
-new revision; source installation is separate from any package-registry release.
+The revision pins the source for [v0.4.2](https://github.com/VibeTensor/attestix-r/releases/tag/v0.4.2).
+Review changes before choosing a new revision.
+
+As checked on 2026-10-30, the [CRAN package index](https://cran.r-project.org/src/contrib/PACKAGES.gz)
+lists `attestix` 0.4.1. `install.packages("attestix")` installs that CRAN version;
+use the pinned source above for 0.4.2. The GitHub release also provides
+[`attestix_0.4.2.tar.gz`](https://github.com/VibeTensor/attestix-r/releases/download/v0.4.2/attestix_0.4.2.tar.gz).
+Preparing a GitHub release does not update CRAN. See [SUBMITTING.md](SUBMITTING.md)
+for the separate maintainer submission steps.
 
 ## Verify a credential
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Correct the source-install revision to the reviewed 0.4.2 release.
+- Distinguish GitHub 0.4.2 availability from CRAN 0.4.1 as checked on 2026-10-30,
+  and update the maintainer submission instructions to use the 0.4.2 tarball.
+
 ## [0.4.2] - 2026-10-12
 
 - Reject ambiguous normalized keys, malformed present expiry, and unsafe numeric coercion.
