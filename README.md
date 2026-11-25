@@ -98,6 +98,12 @@ CI checks release and old-release R, package examples, generated help and shared
 vectors. Additional workflows check manual PDF/HTML and source-package contents.
 These checks are engineering evidence, not a promise about every environment.
 
+## Support
+
+Support ongoing project maintenance through GitHub Sponsors.
+
+<a href="https://github.com/sponsors/VibeTensor"><img src="https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?style=flat-square&logo=github" alt="GitHub Sponsors" /></a>
+
 ## License
 
 [Apache-2.0](LICENSE). Project home: [attestix.io](https://attestix.io).
