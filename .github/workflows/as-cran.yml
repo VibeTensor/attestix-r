@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   as-cran:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: R CMD check --as-cran (release, full manual)
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
